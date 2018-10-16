@@ -1,6 +1,7 @@
 *.idea
 *.sqlite3
-.venv
+venv
 *pyc
 .DS_Store
 .env
+*venv
