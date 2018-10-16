@@ -10,7 +10,7 @@ router.register('callend', views.CallEndRecordView)
 urlpatterns = [
     path('', include(router.urls)),
     path('biller/', views.index, name='index'),
-    #path('biller/<int:subscriber>', views.index, name='index'),
-    #path('biller/<int:subscriber>/<int:month>/<int:year>', views.biller, name='biller'),
+    path('biller/<str:subscriber>', views.billerSimpleReport, name='index'),
+    path('biller/<str:subscriber>/<str:month>/<str:year>', views.billerCompleteReport, name='biller'),
 
 ]
