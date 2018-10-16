@@ -29,9 +29,14 @@ def index(request):
 
 def billerSimpleReport(request, subscriber):
     """receives the subscriber and assume last month and year end call timestamp """
-    return HttpResponse('Simple Report Rendering taking place...')
+    return render(request, 'billersimple.html')
 
 
 def billerCompleteReport(request, subscriber, month, year):
     """receives the subscriber, month and year to filte the report"""
-    return HttpResponse('Complete Report Rendering taking place...')
+    return render(request, 'billercomplete.html')
+
+
+def welcome(request):
+    """welcome to my app - dummie"""
+    return render(request, 'welcome.html')
