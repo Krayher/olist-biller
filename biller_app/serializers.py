@@ -10,7 +10,18 @@ class CallStartRecordSerializer(serializers.HyperlinkedModelSerializer):
         model = CallStartRecord
         fields = ('id',
                   'type',
-                  'timestamp',
+                  'timestamp', #expected datetime ISOFORMAT with %Z military-tz
                   'call_id',
                   'source',
                   'destination')
+
+
+class CallEndRecordSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        """ Serializer for the END CALL record pair fields
+        """
+        model = CallEndRecord
+        fields = ('id',
+                  'type',
+                  'timestamp', #expected datetime ISOFORMAT with %Z military-tz
+                  'call_id')

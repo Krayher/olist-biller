@@ -24,7 +24,7 @@ class CallEndRecord(models.Model):
     """
     id = models.PositiveIntegerField(primary_key=True)
     type = models.CharField(max_length=50, null=True)
-    timestamp = models.DateTimeField()
+    timestamp = models.DateTimeField(null=True)
     call_id = models.CharField(max_length=50, null=True)
 
     def __str(self):
