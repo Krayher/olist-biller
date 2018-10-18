@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.datetime_safe import datetime
+from datetime import timedelta
 
 
 class CallStartRecord(models.Model):
@@ -17,11 +18,29 @@ class CallStartRecord(models.Model):
     def __str(self):
         return 'SUBSCRIBER: {0} - CALL ID: {1}'.format(self.source, self.call_id)
 
-    def checkConsistency(self):
+    def checkconsistency(self):
         pass
 
-    def getLatestClosedPeriod(self):
-        pass
+    def closedperiod(self, subscriber, year, month):
+
+        call_list = []
+
+        queryset = self.objects.filter(source=subscriber,
+                                       timestamp__month=month,
+                                       timestamp__year=year)
+
+        for call_start in queryset:
+            call_end = CallEndRecord.objects.get(
+                call_id=call_start.call_id)
+
+            if call_end.timestamp.month == month:
+                call_details = self.call_calculator(call_start.timestamp,
+                                                    call_end.timestamp)
+
+                call_details['destination'] = call_start.destination
+                call_list.append(call_details)
+
+        return dict({'call_details': call_list})
 
 
 class CallEndRecord(models.Model):
@@ -61,6 +80,16 @@ class QueryFilters():
             else:
                 return 1
 
+    @staticmethod
+    def call_pair(self, subscriber, year, month):
+        call_start_recordset = CallStartRecord.objects.filter(source=subscriber,
+                                                              timestamp__month=month,
+                                                              timestamp__year=year)
 
+        for call_start in call_start_recordset:
+            call_end = CallEndRecord.objects.get(
+                call_id=call_start.call_id)
 
+            if call_end.timestamp.month == month and call_end.timestamp.year == year:
+                pass
 
