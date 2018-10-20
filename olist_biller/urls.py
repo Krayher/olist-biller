@@ -6,6 +6,6 @@ from biller_app import views
 urlpatterns = [
 
     path('admin/', admin.site.urls),
-    path('rest/', include('biller_app.urls')),
+    path('', include('biller_app.urls')),
 
 ]

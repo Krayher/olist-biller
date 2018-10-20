@@ -85,7 +85,7 @@ class QueryFilters:
                 return 1
 
 
-    def get_by_subscriber(self, subscriber):
+    def get_interval_by_subscriber(self, subscriber):
         """ Search required subscriber number eg.: 99988526423 and return
             the last closed period call as list of Month and Year
         """

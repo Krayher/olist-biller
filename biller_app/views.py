@@ -29,7 +29,7 @@ def index(request):
 
 def billerSimpleReport(request, subscriber):
     """receives the subscriber and assume last month and year end call timestamp """
-    return render(request, 'billersimple.html')
+    return render(request, 'billercomplete.html')
 
 
 def billerCompleteReport(request, subscriber, month, year):
@@ -44,12 +44,24 @@ def welcome(request):
 
 def list_call_by_subscriber(request, subscriber):
     qs = QueryFilters()
-    qs_data = qs.get_by_subscriber(subscriber)
-    endpoint = list_full_call_list(request, subscriber=subscriber, month=qs_data[0], year=qs_data[1])
-    return HttpResponse([x for x in endpoint])
+    qs_data = qs.get_interval_by_subscriber(subscriber)
+    endpoint = qs.get_by_full_call_list(subscriber=subscriber, month=qs_data[0], year=qs_data[1])
+
+    context = {
+
+        'call_details': endpoint
+    }
+
+    return render(request, 'billercomplete.html', context)
 
 def list_full_call_list(request, subscriber, month, year):
     qs = QueryFilters()
     qs_data = qs.get_by_full_call_list(subscriber=subscriber, month=month, year=year)
-    return HttpResponse(qs_data)
+
+    context = {
+
+        'call_details': qs_data
+    }
+
+    return render(request, 'billercomplete.html', context)
 
