@@ -128,11 +128,13 @@ class QueryFilters:
 
             if call_end.timestamp.month == month and call_end.timestamp.year == year:
                 call_matrix = self.call_calculator(call_start.timestamp, call_end.timestamp)
+                call_matrix['destination'] = call_start.destination
+                call_details.append(call_matrix)
 
-            call_matrix['destination'] = call_start.destination
-            call_details.append(call_matrix)
-
+        if call_matrix:
             return call_details
+        else:
+            return "Error"
 
     
     def call_calculator(self, timestamp_start, timestamp_end):
@@ -240,7 +242,6 @@ class QueryFilters:
             'call_duration': duration,  # %H;%M:%S
             'call_duration_deltafmt': str(delta_diff),  # %D days %H:%M:%S
         }
-
     
     def tm_delta(self, start, end):
         diff = end - start
