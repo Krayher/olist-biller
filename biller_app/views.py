@@ -1,7 +1,7 @@
 from django.http import HttpResponse
 from django.shortcuts import render
 from rest_framework import viewsets
-from .models import CallStartRecord, CallEndRecord
+from .models import CallStartRecord, CallEndRecord, QueryFilters
 from .serializers import CallStartRecordSerializer, CallEndRecordSerializer
 from datetime import datetime, timedelta, tzinfo
 from django.contrib.auth.decorators import login_required
@@ -40,3 +40,17 @@ def billerCompleteReport(request, subscriber, month, year):
 def welcome(request):
     """welcome to my app - dummie"""
     return render(request, 'welcome.html')
+
+
+def list_call_by_subscriber(request, subscriber):
+    qs = QueryFilters()
+    qs_data = qs.get_by_subscriber(subscriber)
+    print(qs_data)
+    return HttpResponse(str(qs_data[0]) + ' ' + str(qs_data[1]))
+
+
+def list_full_call_list(request, subscriber, month, year):
+    qs = QueryFilters()
+    qs_data = qs.get_by_full_call_list(subscriber=subscriber, month=month, year=year)
+    return HttpResponse(qs_data)
+

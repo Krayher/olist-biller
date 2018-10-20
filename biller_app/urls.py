@@ -11,8 +11,8 @@ urlpatterns = [
 
     path('', include(router.urls)),
     path('biller/', views.index, name='index'),
-    path('biller/<str:subscriber>', views.billerSimpleReport, name='index'),
-    path('biller/<str:subscriber>/<str:month>/<str:year>', views.billerCompleteReport, name='biller'),
+    path('biller/<str:subscriber>', views.list_call_by_subscriber, name='subscriber_only'),
+    path('biller/<str:subscriber>/<int:month>/<int:year>', views.list_full_call_list, name='subscriber_year_month'),
 
 ]
 
