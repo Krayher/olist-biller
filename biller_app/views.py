@@ -45,12 +45,23 @@ def welcome(request):
 def list_call_by_subscriber(request, subscriber):
     qs = QueryFilters()
     qs_data = qs.get_interval_by_subscriber(subscriber)
-    endpoint = qs.get_by_full_call_list(subscriber=subscriber, month=qs_data[0], year=qs_data[1])
+
+    if qs_data == 1:
+        endpoint = "Subscriber not found, check phone number and try again."
+    elif qs_data == 2:
+        endpoint = "There is no valid call information for this subscriber, review data consistency"
+    else:
+        try:
+            endpoint = qs.get_by_full_call_list(subscriber=subscriber, month=qs_data[0], year=qs_data[1])
+        except ValueError:
+            print(endpoint + " ERROR")
 
     context = {
 
         'call_details': endpoint
     }
+
+    print(context)
 
     return render(request, 'billercomplete.html', context)
 

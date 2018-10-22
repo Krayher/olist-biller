@@ -6,7 +6,6 @@ router = routers.DefaultRouter()
 router.register('callstart', views.CallStartRecordView)
 router.register('callend', views.CallEndRecordView)
 
-
 urlpatterns = [
 
     path('', views.index, name='index'),

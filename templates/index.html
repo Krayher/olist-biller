@@ -5,8 +5,12 @@
     <title>Olist Biller</title>
 </head>
 <body>
-    <h1>Patati Patatá</h1>
-    <p> It works!</p>
+    <h2>Login</h2>
+    <form method="post">
+        {% csrf_token %}
+
+        <button type="submit" class="btn btn-info">Login</button>
+</form>
 
 </body>
 </html>

@@ -1,6 +1,28 @@
-from django.db import models
+from django.db import models, IntegrityError
 from django.utils.datetime_safe import datetime
+from django.utils.dateparse import parse_datetime
 from datetime import timedelta
+from django.core.exceptions import ObjectDoesNotExist
+import time
+
+
+class CallPair(models.Model):
+    source = models.CharField(max_length=50)
+    destination = models.CharField(max_length=50)
+    call_id = models.CharField(max_length=10, unique=True)
+    dt_start = models.DateTimeField()
+    dt_end = models.DateTimeField()
+
+    # Optional fields to be implemented in a future version
+    duration = models.CharField(max_length=50)
+    closed_period_month = models.CharField(max_length=5)
+    closed_period_year = models.CharField(max_length=5)
+    price = models.CharField(max_length=10)
+    total_price = models.CharField(max_length=10)
+
+    def __str__(self):
+        return str(self.source + " " + self.call_id)
+
 
 
 class CallStartRecord(models.Model):
@@ -10,7 +32,7 @@ class CallStartRecord(models.Model):
     """
     id = models.PositiveIntegerField(primary_key=True)
     type = models.CharField(max_length=50, null=True)
-    timestamp = models.DateTimeField(null=True, blank=True)
+    timestamp = models.CharField(max_length=50, null=True, blank=True)
     call_id = models.CharField(max_length=50, null=True)
     source = models.CharField(max_length=50, null=True)
     destination = models.CharField(max_length=50, null=True, blank=True)
@@ -47,9 +69,10 @@ class CallEndRecord(models.Model):
        id models is set as not auto positive integer, allowing
        consumer to point its value.
     """
+
     id = models.PositiveIntegerField(primary_key=True)
     type = models.CharField(max_length=50, null=True)
-    timestamp = models.DateTimeField(null=True, blank=True)
+    timestamp = models.CharField(max_length=50, null=True, blank=True)
     call_id = models.CharField(max_length=50, null=True)
 
     def __str__(self):
@@ -62,27 +85,71 @@ class QueryFilters:
     def __init__(self):
         pass
 
-    
+
+    def get_call_pairs(self, subscriber):
+        """
+
+        :param subscriber: The phone number eg. 99988526423
+        :return: reunite each call detail in a table to make life easier
+        """
+
+        purge_subscriber = CallPair.objects.filter(source=subscriber)
+        purge_subscriber.delete()
+
+        try:
+            start = CallStartRecord.objects.filter(source=subscriber)
+        except ObjectDoesNotExist:
+            return 1
+
+        for call in start:
+            cp = CallPair()
+            try:
+                pair = CallEndRecord.objects.get(call_id=call.call_id)
+            except ObjectDoesNotExist:
+                pass
+
+            datetime_validation = self.is_valid_period(call.timestamp, pair.timestamp)
+            if datetime_validation == 1:
+                continue
+            else:
+                start_timestamp = datetime_validation[0]
+                end_timestamp = datetime_validation[1]
+
+                cp.source = call.source
+                cp.destination = call.destination
+                cp.call_id = call.call_id
+                cp.dt_start = start_timestamp
+                cp.dt_end = end_timestamp
+                cp.closed_period_month =  end_timestamp.month
+                cp.closed_period_year = end_timestamp.year
+                try:
+                    cp.save()
+                except IntegrityError:
+                    continue
+
+
     def is_valid_period(self, start_timestamp, end_timestamp):
         try:
-            datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%S%Z")
+            start_timestamp = parse_datetime(start_timestamp) # safe alternative to datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%S%Z") unsupported on python batteries
             is_valid_start_ts = True
         except ValueError:
-            return "ERROR: Invalid call start timestamp"
+            is_valid_start_ts = False
             pass
 
         try:
-            datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%S%Z")
+            end_timestamp = parse_datetime(end_timestamp) # datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%S%Z")
             is_valid_end_ts = True
         except ValueError:
-            return "ERROR: Invalid call end timestamp"
+            is_valid_end_ts = False
             pass
 
         if is_valid_start_ts and is_valid_end_ts:
-            if start_timestamp < end_timestamp:
-                return 0
+            if start_timestamp.replace(tzinfo=None) < end_timestamp.replace(tzinfo=None):
+                return [start_timestamp.replace(tzinfo=None), end_timestamp.replace(tzinfo=None)]
             else:
                 return 1
+
+
 
 
     def get_interval_by_subscriber(self, subscriber):
@@ -90,26 +157,41 @@ class QueryFilters:
             the last closed period call as list of Month and Year
         """
 
+        self.get_call_pairs(subscriber=subscriber)
+
         current_month = datetime.now().month
         current_year = datetime.now().year
         closed_period = []
 
         # Django plus size framework give us a validation during the filtering
         # excluding fields with invalid and empty data during the query search
-        call_start_queryset = CallStartRecord.objects.filter(source=subscriber,
-                                                             timestamp__month__lt=current_month,
-                                                             timestamp__year__lte=current_year).latest('timestamp')
+        try:
+            call_start_queryset = CallStartRecord.objects.filter(source=subscriber,
+                                                         timestamp__month__lt=current_month,
+                                                         timestamp__year__lte=current_year).latest('timestamp')
+        except ObjectDoesNotExist:
+            return 1 #  Return code for call records not found
 
-        closed_period.append(call_start_queryset.timestamp.month)
-        closed_period.append(call_start_queryset.timestamp.year)
+        latest_call_id = call_start_queryset.call_id
+
+        try:
+            call_end_queryset = CallEndRecord.objects.get(call_id=latest_call_id,
+                                                          timestamp__month__gte=call_start_queryset.timestamp.month,
+                                                          timestamp__year__gte=call_start_queryset.timestamp.year)
+        except ObjectDoesNotExist:
+            return 2 #  Return code for call records not found
+
+        if call_end_queryset.timestamp.month < current_month and call_end_queryset.timestamp.year <= current_year:
+            closed_period.append(call_end_queryset.timestamp.month)
+            closed_period.append(call_end_queryset.timestamp.year)
 
         return closed_period
 
     
     def get_by_full_call_list(self, subscriber, year, month):
         """
-        :param self:
-        :param subscriber: Number of Subscriber
+        :param self: Iluminate yourself
+        :param subscriber: Subscriber number
         :param year: int 4 digits
         :param month: int 2 digits
         :return: dictionary with call details
@@ -118,9 +200,26 @@ class QueryFilters:
         call_details = []
         call_matrix = dict()
 
-        call_start_recordset = CallStartRecord.objects.filter(source=subscriber,
-                                                              timestamp__month=month,
-                                                              timestamp__year=year)
+        # make sure that closed period informed is in the same month when calls has ended.
+
+        try:
+            call_start_recordset = CallStartRecord.objects.filter(source=subscriber,
+                                                                  timestamp__month=month,
+                                                                  timestamp__year=year)
+        except ObjectDoesNotExist:
+            return 1 # Return code for missing subscriber and its filters
+
+        if len(call_start_recordset) == 0:
+            try:
+                # This occurs when a call starts 31st and ends up in the next day 1 from next month
+                call_start_recordset = CallStartRecord.objects.filter(source=subscriber,
+                                                                      timestamp__month__lte=month,
+                                                                      timestamp__year__lte=year)
+            except ObjectDoesNotExist:
+                return 1  # If something goes wrong during filtering !!! ALERT !!!
+
+        if len(call_start_recordset) == 0:
+            return 1
 
         for call_start in call_start_recordset:
             call_end = CallEndRecord.objects.get(
@@ -134,7 +233,7 @@ class QueryFilters:
         if call_matrix:
             return call_details
         else:
-            return "Error"
+            return 1
 
     
     def call_calculator(self, timestamp_start, timestamp_end):
