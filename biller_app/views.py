@@ -18,7 +18,7 @@ class CallEndRecordView(viewsets.ModelViewSet):
     queryset = CallEndRecord.objects.all()
     serializer_class = CallEndRecordSerializer
 
-################################## Serialization done
+# Serialization done
 
 
 @login_required
@@ -43,23 +43,32 @@ def welcome(request):
 
 
 def find_subcriber(request, subscriber):
+    """ receives the subscriber number and find the last
+        period of month and year, and perform the search
+        calculation and saves to @tempDataTable to display
+    """
     qs = QueryFilters()
-
     qs_data = qs.get_interval_by_auto(subscriber)
 
+    #3 Return code for missing subscriber and its filters
+    #4 Return code period not found for the provided subscriber
 
-    #endpoint = "Subscriber not found, check phone number and try again."
-    #endpoint = qs.get_by_full_call_list(subscriber=subscriber,
-    #                                    month=qs_data.closed_period_month,
-    #                                    year=qs_data.closed_period_year)
-    context = {
-
-        'call_details': "x"
-    }
-
-    print(context)
+    if qs_data == 1:
+        endpoint = "Subscriber not found."
+    elif qs_data == 2:
+        endpoint = "No call records for this subscriber."
+    elif qs_data == 3:
+        pass
+    elif qs_data == 4:
+        pass
+    elif qs_data == 5:
+        pass
+    else:
+        endpoint = qs_data # cast for future implementations
+        context = {'call_details': endpoint }
 
     return render(request, 'billercomplete.html', context)
+
 
 def find_subscriber_month_year(request, subscriber, month, year):
     """
@@ -75,11 +84,8 @@ def find_subscriber_month_year(request, subscriber, month, year):
 
     if qs_data == 1:
         print('ERROR DURING FILTERING')
-
-    context = {
-
-        'call_details': qs_data
-    }
+    else:
+        endpoint = qs_data # cast for future filtering implementations
+        context = {'call_details': qs_data}
 
     return render(request, 'billercomplete.html', context)
-

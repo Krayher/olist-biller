@@ -127,7 +127,6 @@ class QueryFilters:
                 except IntegrityError:
                     continue
 
-
     def is_valid_period(self, start_timestamp, end_timestamp):
         try:
             start_timestamp = parse_datetime(start_timestamp) # safe alternative to datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%S%Z") unsupported on python batteries
@@ -149,9 +148,6 @@ class QueryFilters:
             else:
                 return 1
 
-
-
-
     def get_interval_by_auto(self, subscriber):
         """ Search required subscriber number eg.: 99988526423 and return
             the last closed period call as list of Month and Year
@@ -166,19 +162,21 @@ class QueryFilters:
         # Django plus size framework give us a validation during the filtering
         # excluding fields with invalid and empty data during the query search
         try:
-            call_pair = CallPair.objects.filter(source=subscriber).latest('closed_period_year', 'closed_period_month')
+            call_pair = CallPair.objects.filter(source=subscriber,
+                                                dt_end__month__lt=current_month,
+                                                dt_end__year__lte=current_year).latest('dt_end')
         except ObjectDoesNotExist:
-            return 1 #  Return code for call records not found
-
-        if len(call_pair) == 0:
             return 1
-        else:
-            return call_pair
 
-    
+        interval = self.get_interval_by_period(subscriber,
+                                    call_pair.closed_period_year,
+                                    call_pair.closed_period_month)
+
+        return interval
+
     def get_interval_by_period(self, subscriber, year, month):
         """
-        :param self: Iluminate yourself
+        :param self: self-controlled
         :param subscriber: Subscriber number
         :param year: int 4 digits
         :param month: int 2 digits
@@ -195,23 +193,26 @@ class QueryFilters:
                                                   closed_period_month=month,
                                                   closed_period_year=year)
         except ObjectDoesNotExist:
-            return 1 # Return code for missing subscriber and its filters
+            return 3 # Return code for missing subscriber and its filters
 
 
-        if len(call_period) == 0:
-            return 1
+        if call_period.count() == 0:
+            return 4 # Return code period not found for the provided subscriber
 
         for call in call_period:
-            call_matrix = self.call_calculator(call.dt_start, call.dt_end)
-            call_matrix['destination'] = call.source
+            call_matrix = self.call_calculator(call.dt_start,
+                                               call.dt_end)
+
+            call.price = call_matrix['call_price']
+
+            # save the price information in the @tempDataTable
+            call.save()
+
+            # just a trick to return the call details
             call_details.append(call_matrix)
 
-        if call_matrix:
-            return call_details
-        else:
-            return 1
+        return call_details
 
-    
     def call_calculator(self, timestamp_start, timestamp_end):
 
         normal_charge = [x for x in range(6, 22)]
@@ -222,7 +223,7 @@ class QueryFilters:
         call_total_duration = self.call_duration(
             call_start, call_end)
 
-        # If call duration time between 6 and 22 hours / 5 cents per minute + 10 cents for call
+        # If call duration time between 6 and 22 hours / 0.09 cents per minute + 0.36 cents for call
         if (call_start.hour in normal_charge) & \
                 (call_end.hour in normal_charge):
 
@@ -289,13 +290,12 @@ class QueryFilters:
                                'partial',
                                call_total_duration)
 
-    
     def call_duration(self, start, end):
         delta_diff = end - start
         duration = str(delta_diff).split('.')[0]
 
         """ The initial problema doesn't require such detailed information, however
-            for future detailed information it's already done, just plug and play.
+            for future implementations it's done, just plug and play.
         """
         return {
             'start_date': datetime.strftime(start, '%Y/%m/%d'),
@@ -317,20 +317,25 @@ class QueryFilters:
             'call_duration': duration,  # %H;%M:%S
             'call_duration_deltafmt': str(delta_diff),  # %D days %H:%M:%S
         }
-    
+
     def tm_delta(self, start, end):
         diff = end - start
         diff = diff / timedelta(minutes=1)
 
         return diff
 
-    def taxing(self, minutes, type, duration):
+    def taxing(self, minutes, period_type, duration):
+        """ Receives integer minutos, string type, duration timestamp return dict with
+            detailed information about pricing
+        """
+
         minutes = int(minutes)
-        fixed_charge = float(0.11)
-        if type == "normal" or "partial":
-            minute_price = float(0.05)
+        fixed_charge = float(0.36)  # standing charge for any call
+
+        if period_type == "normal" or "partial":  # normal charge or partial charge
+            minute_price = float(0.09)
         else:
-            minute_price = float(0)
+            minute_price = float(0)  # no minute charge when whole call is out of 22 PM to 6 AM
 
         value = minutes * minute_price
         duration['call_price'] = float(value + fixed_charge)
