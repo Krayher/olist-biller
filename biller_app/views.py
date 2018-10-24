@@ -42,32 +42,39 @@ def welcome(request):
     return render(request, 'welcome.html')
 
 
-def list_call_by_subscriber(request, subscriber):
+def find_subcriber(request, subscriber):
     qs = QueryFilters()
-    qs_data = qs.get_interval_by_subscriber(subscriber)
 
-    if qs_data == 1:
-        endpoint = "Subscriber not found, check phone number and try again."
-    elif qs_data == 2:
-        endpoint = "There is no valid call information for this subscriber, review data consistency"
-    else:
-        try:
-            endpoint = qs.get_by_full_call_list(subscriber=subscriber, month=qs_data[0], year=qs_data[1])
-        except ValueError:
-            print(endpoint + " ERROR")
+    qs_data = qs.get_interval_by_auto(subscriber)
 
+
+    #endpoint = "Subscriber not found, check phone number and try again."
+    #endpoint = qs.get_by_full_call_list(subscriber=subscriber,
+    #                                    month=qs_data.closed_period_month,
+    #                                    year=qs_data.closed_period_year)
     context = {
 
-        'call_details': endpoint
+        'call_details': "x"
     }
 
     print(context)
 
     return render(request, 'billercomplete.html', context)
 
-def list_full_call_list(request, subscriber, month, year):
+def find_subscriber_month_year(request, subscriber, month, year):
+    """
+    :param request: (auto)
+    :param subscriber: provided eg. 11970663342
+    :param month: integer 2 digits
+    :param year: integer 4 difits
+    :return: detailed call list on screen
+    """
     qs = QueryFilters()
-    qs_data = qs.get_by_full_call_list(subscriber=subscriber, month=month, year=year)
+
+    qs_data = qs.get_interval_by_period(subscriber=subscriber, month=month, year=year)
+
+    if qs_data == 1:
+        print('ERROR DURING FILTERING')
 
     context = {
 

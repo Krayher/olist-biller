@@ -152,7 +152,7 @@ class QueryFilters:
 
 
 
-    def get_interval_by_subscriber(self, subscriber):
+    def get_interval_by_auto(self, subscriber):
         """ Search required subscriber number eg.: 99988526423 and return
             the last closed period call as list of Month and Year
         """
@@ -166,29 +166,17 @@ class QueryFilters:
         # Django plus size framework give us a validation during the filtering
         # excluding fields with invalid and empty data during the query search
         try:
-            call_start_queryset = CallStartRecord.objects.filter(source=subscriber,
-                                                         timestamp__month__lt=current_month,
-                                                         timestamp__year__lte=current_year).latest('timestamp')
+            call_pair = CallPair.objects.filter(source=subscriber).latest('closed_period_year', 'closed_period_month')
         except ObjectDoesNotExist:
             return 1 #  Return code for call records not found
 
-        latest_call_id = call_start_queryset.call_id
-
-        try:
-            call_end_queryset = CallEndRecord.objects.get(call_id=latest_call_id,
-                                                          timestamp__month__gte=call_start_queryset.timestamp.month,
-                                                          timestamp__year__gte=call_start_queryset.timestamp.year)
-        except ObjectDoesNotExist:
-            return 2 #  Return code for call records not found
-
-        if call_end_queryset.timestamp.month < current_month and call_end_queryset.timestamp.year <= current_year:
-            closed_period.append(call_end_queryset.timestamp.month)
-            closed_period.append(call_end_queryset.timestamp.year)
-
-        return closed_period
+        if len(call_pair) == 0:
+            return 1
+        else:
+            return call_pair
 
     
-    def get_by_full_call_list(self, subscriber, year, month):
+    def get_interval_by_period(self, subscriber, year, month):
         """
         :param self: Iluminate yourself
         :param subscriber: Subscriber number
@@ -203,32 +191,20 @@ class QueryFilters:
         # make sure that closed period informed is in the same month when calls has ended.
 
         try:
-            call_start_recordset = CallStartRecord.objects.filter(source=subscriber,
-                                                                  timestamp__month=month,
-                                                                  timestamp__year=year)
+            call_period = CallPair.objects.filter(source=subscriber,
+                                                  closed_period_month=month,
+                                                  closed_period_year=year)
         except ObjectDoesNotExist:
             return 1 # Return code for missing subscriber and its filters
 
-        if len(call_start_recordset) == 0:
-            try:
-                # This occurs when a call starts 31st and ends up in the next day 1 from next month
-                call_start_recordset = CallStartRecord.objects.filter(source=subscriber,
-                                                                      timestamp__month__lte=month,
-                                                                      timestamp__year__lte=year)
-            except ObjectDoesNotExist:
-                return 1  # If something goes wrong during filtering !!! ALERT !!!
 
-        if len(call_start_recordset) == 0:
+        if len(call_period) == 0:
             return 1
 
-        for call_start in call_start_recordset:
-            call_end = CallEndRecord.objects.get(
-                call_id=call_start.call_id)
-
-            if call_end.timestamp.month == month and call_end.timestamp.year == year:
-                call_matrix = self.call_calculator(call_start.timestamp, call_end.timestamp)
-                call_matrix['destination'] = call_start.destination
-                call_details.append(call_matrix)
+        for call in call_period:
+            call_matrix = self.call_calculator(call.dt_start, call.dt_end)
+            call_matrix['destination'] = call.source
+            call_details.append(call_matrix)
 
         if call_matrix:
             return call_details
