@@ -7,17 +7,16 @@
 
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-    <title>Biller Report</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <title>Olist Biller Report</title>
 </head>
 <body>
-
-
 
     <div class="container">
 
     <div class="row">
         <div class="col-sm" align="left">
-            <p><h1>SUBSCRIBER</h1></p>
+            <p><h4><i class="fa fa-address-book" style="font-size:36px"> CUSTOMER: {{  subscriber }} </i></h4></p>
         </div>
         <div class="col-sm" align="right">
             <p><h1>OLIST BILLER</h1></p>
@@ -31,10 +30,10 @@
             <h5>DESTINATION</h5>
         </div>
         <div class="col-sm">
-            <h5>DATE:</h5>
+            <h5>START DATE:</h5>
         </div>
         <div class="col-sm">
-            <h5>TIME:</h5>
+            <h5>START TIME:</h5>
         </div>
         <div class="col-sm">
             <h5>DURATION:</h5>
@@ -75,7 +74,7 @@
     {%  else %}
         <div class="row" align="left">
         <div class="col-sm">
-            <h5>There is a open period for this subscriber requested, try a past month period.</h5>
+            <h5>{{ info }}</h5>
         </div>
 
     </div>

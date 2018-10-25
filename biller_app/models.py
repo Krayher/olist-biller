@@ -2,9 +2,10 @@ from django.db import models, IntegrityError
 from django.utils.datetime_safe import datetime
 from django.utils.dateparse import parse_datetime
 from datetime import timedelta
+from dateutil import parser
 from django.core.exceptions import ObjectDoesNotExist
-import time
-
+from decimal import *
+import pytz
 
 class CallPair(models.Model):
     source = models.CharField(max_length=50)
@@ -24,7 +25,6 @@ class CallPair(models.Model):
         return str(self.source + " " + self.call_id)
 
 
-
 class CallStartRecord(models.Model):
     """Receiver most in CharField format to avoid data discrepancies
        id models is set as not auto positive integer, allowing
@@ -40,8 +40,8 @@ class CallStartRecord(models.Model):
     def __str__(self):
         return 'SUBSCRIBER: {0} - CALL ID: {1}'.format(self.source, self.call_id)
 
-    
     def closedperiod(self, subscriber, year, month):
+        """ Receives subscriber, year and month and return calculated calls for that period"""
 
         call_list = []
 
@@ -85,32 +85,33 @@ class QueryFilters:
     def __init__(self):
         pass
 
-
     def get_call_pairs(self, subscriber):
         """
-
         :param subscriber: The phone number eg. 99988526423
         :return: reunite each call detail in a table to make life easier
         """
+        try:
+            purge_subscriber = CallPair.objects.filter(source=subscriber)
+            purge_subscriber.delete()
+        except ObjectDoesNotExist:
+            pass
 
-        purge_subscriber = CallPair.objects.filter(source=subscriber)
-        purge_subscriber.delete()
 
         try:
             start = CallStartRecord.objects.filter(source=subscriber)
         except ObjectDoesNotExist:
-            return 1
+            return [1, "Subscriber not found in database, check number format eg: 11976003342 AAXXXXXXXXX"]
 
         for call in start:
             cp = CallPair()
             try:
                 pair = CallEndRecord.objects.get(call_id=call.call_id)
             except ObjectDoesNotExist:
-                pass
+                return [2, "No valid call pair for this subscriber, check data consistency by REST API"]
 
             datetime_validation = self.is_valid_period(call.timestamp, pair.timestamp)
             if datetime_validation == 1:
-                continue
+                break
             else:
                 start_timestamp = datetime_validation[0]
                 end_timestamp = datetime_validation[1]
@@ -129,14 +130,18 @@ class QueryFilters:
 
     def is_valid_period(self, start_timestamp, end_timestamp):
         try:
-            start_timestamp = parse_datetime(start_timestamp) # safe alternative to datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%S%Z") unsupported on python batteries
+            # looking for a safe alternative to convert ISO-8601 datetime
+            # "%Y-%m-%dT%H:%M:%S%Z") unsupported into python batteries prior py3.7
+            # date string template from olist: 2016-02-29T14:00:00Z
+            # converting both dates to naiwe datetime objects since format has no %Z just Z (zulu time)
+            start_timestamp = parser.parse(start_timestamp) # datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%SZ")
             is_valid_start_ts = True
         except ValueError:
             is_valid_start_ts = False
             pass
 
         try:
-            end_timestamp = parse_datetime(end_timestamp) # datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%S%Z")
+            end_timestamp = parser.parse(end_timestamp) # datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%SZ")
             is_valid_end_ts = True
         except ValueError:
             is_valid_end_ts = False
@@ -144,7 +149,7 @@ class QueryFilters:
 
         if is_valid_start_ts and is_valid_end_ts:
             if start_timestamp.replace(tzinfo=None) < end_timestamp.replace(tzinfo=None):
-                return [start_timestamp.replace(tzinfo=None), end_timestamp.replace(tzinfo=None)]
+                return [start_timestamp, end_timestamp]
             else:
                 return 1
 
@@ -157,16 +162,14 @@ class QueryFilters:
 
         current_month = datetime.now().month
         current_year = datetime.now().year
-        closed_period = []
 
-        # Django plus size framework give us a validation during the filtering
         # excluding fields with invalid and empty data during the query search
         try:
             call_pair = CallPair.objects.filter(source=subscriber,
                                                 dt_end__month__lt=current_month,
                                                 dt_end__year__lte=current_year).latest('dt_end')
         except ObjectDoesNotExist:
-            return 1
+            return [1, "There is no valid call pair for this subscriber"]
 
         interval = self.get_interval_by_period(subscriber,
                                     call_pair.closed_period_year,
@@ -195,7 +198,6 @@ class QueryFilters:
         except ObjectDoesNotExist:
             return 3 # Return code for missing subscriber and its filters
 
-
         if call_period.count() == 0:
             return 4 # Return code period not found for the provided subscriber
 
@@ -204,6 +206,7 @@ class QueryFilters:
                                                call.dt_end)
 
             call.price = call_matrix['call_price']
+            call_matrix['destination'] = call.destination
 
             # save the price information in the @tempDataTable
             call.save()
@@ -237,13 +240,15 @@ class QueryFilters:
             # TODO: find a time to research a better way to avoid this messy code
             else:
                 end_charge_limit = call_start.replace(hour=22,
-                                                      minute=0)
+                                                      minute=0,
+                                                      second=0)
 
                 min_amount = end_charge_limit - call_start
                 min_amount = min_amount / timedelta(minutes=1)
 
                 start_charge_limit = call_end.replace(hour=6,
-                                                      minute=0)
+                                                      minute=0,
+                                                      second=0)
 
                 end_amount = call_end - start_charge_limit
                 end_amount = end_amount / timedelta(minutes=1)
@@ -266,7 +271,8 @@ class QueryFilters:
                 (call_end.hour not in normal_charge):
 
             end_charge_limit = call_end.replace(hour=22,
-                                                minute=0)
+                                                minute=0,
+                                                second=0)
 
             period_in_minutes = self.tm_delta(call_start,
                                               end_charge_limit)
@@ -294,8 +300,7 @@ class QueryFilters:
         delta_diff = end - start
         duration = str(delta_diff).split('.')[0]
 
-        """ The initial problema doesn't require such detailed information, however
-            for future implementations it's done, just plug and play.
+        """ For future implementations it's done, just plug and play.
         """
         return {
             'start_date': datetime.strftime(start, '%Y/%m/%d'),
@@ -338,7 +343,8 @@ class QueryFilters:
             minute_price = float(0)  # no minute charge when whole call is out of 22 PM to 6 AM
 
         value = minutes * minute_price
-        duration['call_price'] = float(value + fixed_charge)
+
+        duration['call_price'] = float("{0:.2f}".format(value + fixed_charge))
 
         return duration
 

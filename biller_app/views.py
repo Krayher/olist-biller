@@ -50,24 +50,18 @@ def find_subcriber(request, subscriber):
     qs = QueryFilters()
     qs_data = qs.get_interval_by_auto(subscriber)
 
-    #3 Return code for missing subscriber and its filters
-    #4 Return code period not found for the provided subscriber
+    # 3 Return code for missing subscriber and its filters
+    # 4 Return code period not found for the provided subscriber
 
-    if qs_data == 1:
-        endpoint = "Subscriber not found."
-    elif qs_data == 2:
-        endpoint = "No call records for this subscriber."
-    elif qs_data == 3:
-        pass
-    elif qs_data == 4:
-        pass
-    elif qs_data == 5:
-        pass
+    if qs_data[0] in range(0, 5):
+        endpoint = qs_data[1]
+        context = {'info': endpoint, 'subscriber': subscriber}
+        return render(request, 'billercomplete.html', context)
+
     else:
         endpoint = qs_data # cast for future implementations
-        context = {'call_details': endpoint }
-
-    return render(request, 'billercomplete.html', context)
+        context = {'call_details': endpoint, 'subscriber': subscriber}
+        return render(request, 'billercomplete.html', context)
 
 
 def find_subscriber_month_year(request, subscriber, month, year):
