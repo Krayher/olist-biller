@@ -1,13 +1,16 @@
 from django.db import models, IntegrityError
 from django.utils.datetime_safe import datetime
-from django.utils.dateparse import parse_datetime
 from datetime import timedelta
 from dateutil import parser
 from django.core.exceptions import ObjectDoesNotExist
 from decimal import *
-import pytz
+
 
 class CallPair(models.Model):
+    """ Temporary table for joining detailed call information
+        Not implemented in REST API in version 1.0
+        Can be further used directly from views.py to void parsing data
+    """
     source = models.CharField(max_length=50)
     destination = models.CharField(max_length=50)
     call_id = models.CharField(max_length=10, unique=True)
@@ -45,17 +48,17 @@ class CallStartRecord(models.Model):
 
         call_list = []
 
-        queryset = self.objects.filter(source=subscriber,
-                                       timestamp__month=month,
-                                       timestamp__year=year)
+        try:
+            queryset = self.objects.filter(source=subscriber, timestamp__month=month, timestamp__year=year)
+        except ObjectDoesNotExist:
+            return [1, "There is no data for month {0} and year {1}.".format(month, year)]
 
         for call_start in queryset:
             call_end = CallEndRecord.objects.get(
                 call_id=call_start.call_id)
 
             if call_end.timestamp.month == month:
-                call_details = self.call_calculator(call_start.timestamp,
-                                                    call_end.timestamp)
+                call_details = self.call_calculator(call_start.timestamp, call_end.timestamp)
 
                 # creating the destination filed in the fresh returned dict
                 call_details['destination'] = call_start.destination
@@ -93,21 +96,25 @@ class QueryFilters:
         try:
             purge_subscriber = CallPair.objects.filter(source=subscriber)
             purge_subscriber.delete()
-        except ObjectDoesNotExist:
+        except purge_subscriber.ObjectDoesNotExist:
             pass
 
-
+        # avoid injection or large data inserted in subscriber var
         try:
             start = CallStartRecord.objects.filter(source=subscriber)
         except ObjectDoesNotExist:
-            return [1, "Subscriber not found in database, check number format eg: 11976003342 AAXXXXXXXXX"]
+            return [1, "Internal Error - please contact staff support - subscriber lenght: {0} - type {1}".format(
+                len(subscriber), type(subscriber))]
+
+        if start.count() == 0:
+            return [2, "Subscriber was not found in database. Please check the subscriber number."]
 
         for call in start:
             cp = CallPair()
             try:
                 pair = CallEndRecord.objects.get(call_id=call.call_id)
             except ObjectDoesNotExist:
-                return [2, "No valid call pair for this subscriber, check data consistency by REST API"]
+                return [3, "No valid call pair for this subscriber, check data consistency by REST API"]
 
             datetime_validation = self.is_valid_period(call.timestamp, pair.timestamp)
             if datetime_validation == 1:
@@ -126,7 +133,9 @@ class QueryFilters:
                 try:
                     cp.save()
                 except IntegrityError:
-                    continue
+                    return [1, "There was an Integrity Error during data saving. Please try again"]
+        return [0, "Records were saved in the temp database"]
+
 
     def is_valid_period(self, start_timestamp, end_timestamp):
         try:
@@ -141,7 +150,7 @@ class QueryFilters:
             pass
 
         try:
-            end_timestamp = parser.parse(end_timestamp) # datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            end_timestamp = parser.parse(end_timestamp)  # datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%SZ")
             is_valid_end_ts = True
         except ValueError:
             is_valid_end_ts = False
@@ -158,7 +167,9 @@ class QueryFilters:
             the last closed period call as list of Month and Year
         """
 
-        self.get_call_pairs(subscriber=subscriber)
+        call_pair_resume = self.get_call_pairs(subscriber=subscriber)
+        if call_pair_resume[0] > 1:
+            return call_pair_resume  # return the error and description to view and frontend
 
         current_month = datetime.now().month
         current_year = datetime.now().year
@@ -196,14 +207,13 @@ class QueryFilters:
                                                   closed_period_month=month,
                                                   closed_period_year=year)
         except ObjectDoesNotExist:
-            return 3 # Return code for missing subscriber and its filters
+            return [3, "Internal server error, please contact administrator"]
 
         if call_period.count() == 0:
-            return 4 # Return code period not found for the provided subscriber
+            return [4, "No matching results were found for this subscriber"]
 
         for call in call_period:
-            call_matrix = self.call_calculator(call.dt_start,
-                                               call.dt_end)
+            call_matrix = self.call_calculator(call.dt_start, call.dt_end)
 
             call.price = call_matrix['call_price']
             call_matrix['destination'] = call.destination
@@ -211,92 +221,104 @@ class QueryFilters:
             # save the price information in the @tempDataTable
             call.save()
 
-            # just a trick to return the call details
+            # return the dict call details into list like obj
             call_details.append(call_matrix)
 
         return call_details
 
     def call_calculator(self, timestamp_start, timestamp_end):
+        """
+        :param timestamp_start: datetime object
+        :param timestamp_end: datetime object
+        :return: dictionary containing: charge period, call price and senstive call information
+                 for future implementations
+        """
+        # TODO: Research a better way to avoid using this schema
 
-        normal_charge = [x for x in range(6, 22)]
+        normal_charge_period = [x for x in range(6, 22)]  # 6am to 22pm
 
-        call_start = timestamp_start  # conventional var name to be used
-        call_end = timestamp_end  # conventional var name
+        call_start_datetime = timestamp_start  # casting conventional var name to be used
+        call_end_datetime = timestamp_end  # casting conventional var name
 
-        call_total_duration = self.call_duration(
-            call_start, call_end)
+        # keeps detailed information from time DELTA between start and end call datetime obj
+        call_total_duration = self.call_duration(call_start_datetime, call_end_datetime)
 
         # If call duration time between 6 and 22 hours / 0.09 cents per minute + 0.36 cents for call
-        if (call_start.hour in normal_charge) & \
-                (call_end.hour in normal_charge):
+        if (call_start_datetime.hour in normal_charge_period) & \
+                (call_end_datetime.hour in normal_charge_period):
 
             # if call duration time between 6 and 22 hours of the same day
-            if call_start.day == call_end.day:
-                period_in_minutes = self.tm_delta(call_start, call_end)
+            if call_start_datetime.day == call_end_datetime.day:
+                period_in_minutes = self.tm_delta(call_start_datetime, call_end_datetime)
 
-                return self.taxing(period_in_minutes, "normal", call_total_duration)
+                # casting for a better code reading
+                feeder_resume = self.feeder(period_in_minutes, "normal", call_total_duration)
+                return feeder_resume
 
             # else if call duration time exceeds a day
-            # TODO: find a time to research a better way to avoid this messy code
             else:
-                end_charge_limit = call_start.replace(hour=22,
-                                                      minute=0,
-                                                      second=0)
+                end_charge_limit = call_start_datetime.replace(hour=22, minute=0, second=0)
 
-                min_amount = end_charge_limit - call_start
+                min_amount = end_charge_limit - call_start_datetime
                 min_amount = min_amount / timedelta(minutes=1)
 
-                start_charge_limit = call_end.replace(hour=6,
-                                                      minute=0,
-                                                      second=0)
+                start_charge_limit = call_end_datetime.replace(hour=6, minute=0, second=0)
 
-                end_amount = call_end - start_charge_limit
+                end_amount = call_end_datetime - start_charge_limit
                 end_amount = end_amount / timedelta(minutes=1)
-
                 amount = min_amount + end_amount
 
-                return self.taxing(amount, "normal", call_total_duration)
+                # casting for a better code reading
+                feeder_resume = self.feeder(amount, "normal", call_total_duration)
+
+                return feeder_resume
 
         # If call_total_duration between reduced charge period / 22pm hour to 6am hour
-        elif (call_start.hour not in normal_charge) & \
-                (call_end.hour not in normal_charge):
+        elif (call_start_datetime.hour not in normal_charge_period) & \
+                (call_end_datetime.hour not in normal_charge_period):
 
-            period_in_minutes = self.tm_delta(call_start,
-                                              call_end)
+            # keeps the total period in minutes to be evaluated by the feeder.
+            period_in_minutes = self.tm_delta(call_start_datetime, call_end_datetime)
 
-            return self.taxing(period_in_minutes, "reduced_charge", call_total_duration)
+            # casting for a better code reading
+            feeder_resume = self.feeder(period_in_minutes, "reduced_charge", call_total_duration)
+
+            return feeder_resume
 
         # If call_total_duration starts between normal period and ends on reduced period / 22am hour before 6am hour
-        elif (call_start.hour in normal_charge) & \
-                (call_end.hour not in normal_charge):
+        elif (call_start_datetime.hour in normal_charge_period) & \
+                (call_end_datetime.hour not in normal_charge_period):
 
-            end_charge_limit = call_end.replace(hour=22,
-                                                minute=0,
-                                                second=0)
+            # fast way found to calculate feeder delta
+            # TODO: Find a more elegant way to calculate this
+            end_charge_limit = call_end_datetime.replace(hour=22, minute=0, second=0)
+            period_in_minutes = self.tm_delta(call_start_datetime, end_charge_limit)
 
-            period_in_minutes = self.tm_delta(call_start,
-                                              end_charge_limit)
-
-            return self.taxing(period_in_minutes,
-                               "partial",
-                               call_total_duration)
+            return self.feeder(period_in_minutes, "partial", call_total_duration)
 
         # If call_total_duration starts after 22pm hour and ends after 6am hour
-        elif (call_start.hour not in normal_charge) & \
-                (call_end.hour in normal_charge):
+        elif (call_start_datetime.hour not in normal_charge_period) & \
+                (call_end_datetime.hour in normal_charge_period):
 
-            start_charge_limit = call_start.replace(hour=6,
+            start_charge_limit = call_start_datetime.replace(hour=6,
                                                     minute=0)
 
             period_in_minutes = self.tm_delta(start_charge_limit,
-                                              call_end)
+                                              call_end_datetime)
 
             # return detailed price information plus call duration
-            return self.taxing(period_in_minutes,
+            return self.feeder(period_in_minutes,
                                'partial',
                                call_total_duration)
 
     def call_duration(self, start, end):
+        """
+
+        :param start: datetime format
+        :param end: datetime format
+        :return: hh:mm:ss without microseconds when applicable
+                 TODO: Further investigate DELTA weird behavior in POSIX systems
+        """
         delta_diff = end - start
         duration = str(delta_diff).split('.')[0]
 
@@ -329,8 +351,8 @@ class QueryFilters:
 
         return diff
 
-    def taxing(self, minutes, period_type, duration):
-        """ Receives integer minutos, string type, duration timestamp return dict with
+    def feeder(self, minutes, period_type, duration):
+        """ Receives integer minutes, string type, duration timestamp return dict with
             detailed information about pricing
         """
 
@@ -340,10 +362,12 @@ class QueryFilters:
         if period_type == "normal" or "partial":  # normal charge or partial charge
             minute_price = float(0.09)
         else:
+            #  using float(0) since 0 was giving out weird behavior due POSIX-based architecture
             minute_price = float(0)  # no minute charge when whole call is out of 22 PM to 6 AM
 
         value = minutes * minute_price
 
+        # a safe way to impose format this float in POSIX-based architecture when running in Win32 systems
         duration['call_price'] = float("{0:.2f}".format(value + fixed_charge))
 
         return duration

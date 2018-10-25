@@ -48,7 +48,7 @@ def find_subcriber(request, subscriber):
         calculation and saves to @tempDataTable to display
     """
     qs = QueryFilters()
-    qs_data = qs.get_interval_by_auto(subscriber)
+    qs_data = qs.get_interval_by_auto(subscriber=subscriber)
 
     # 3 Return code for missing subscriber and its filters
     # 4 Return code period not found for the provided subscriber
@@ -76,7 +76,7 @@ def find_subscriber_month_year(request, subscriber, month, year):
 
     qs_data = qs.get_interval_by_period(subscriber=subscriber, month=month, year=year)
 
-    if qs_data == 1:
+    if qs_data[0] in range(1, 5):
         print('ERROR DURING FILTERING')
     else:
         endpoint = qs_data # cast for future filtering implementations
