@@ -3,8 +3,8 @@ from django.shortcuts import render
 from rest_framework import viewsets
 from .models import CallStartRecord, CallEndRecord, QueryFilters
 from .serializers import CallStartRecordSerializer, CallEndRecordSerializer
-from datetime import datetime, timedelta, tzinfo
 from django.contrib.auth.decorators import login_required
+from .forms import BillerForm
 
 
 class CallStartRecordView(viewsets.ModelViewSet):
@@ -24,29 +24,44 @@ class CallEndRecordView(viewsets.ModelViewSet):
 @login_required
 def index(request):
     """ dummie test"""
-    return render(request, 'index.html')
+    form = BillerForm(request.POST)
+    return render(request, 'index.html', {'form': form })
 
 
-def billerSimpleReport(request, subscriber):
-    """receives the subscriber and assume last month and year end call timestamp """
-    return render(request, 'billercomplete.html')
+def biller(request):
+    """
+    :param request: receives the form in POST method
+    :return: split data and start database search and call calculation
+    """
+    if request.method == "POST":
+        form = BillerForm(request.POST)
+
+    if form.is_valid():
+        data = form.cleaned_data
+
+    else:
+        form = BillerForm()
+        render(request, 'index.html', {'form': form})
+
+    _subscriber = data['subscriber']
+    _month = data['month']
+    _year = data['year']
+
+    if data['month'] in range(0, 13) and data['year'] in range(1900, 2099):
+        _result = find_subscriber_month_year(subscriber=_subscriber, month=_month, year=_year)
+    else:
+        _result = find_subscriber(subscriber=_subscriber)
+
+    return render(request, 'callslist.html', _result)
 
 
-def billerCompleteReport(request, subscriber, month, year):
-    """receives the subscriber, month and year to filte the report"""
-    return render(request, 'billercomplete.html')
-
-
-def welcome(request):
-    """welcome to my app - dummie"""
-    return render(request, 'welcome.html')
-
-
-def find_subcriber(request, subscriber):
+# @login_required
+def find_subscriber(subscriber):
     """ receives the subscriber number and find the last
         period of month and year, and perform the search
         calculation and saves to @tempDataTable to display
     """
+
     qs = QueryFilters()
     qs_data = qs.get_interval_by_auto(subscriber=subscriber)
 
@@ -56,15 +71,17 @@ def find_subcriber(request, subscriber):
     if qs_data[0] in range(0, 5):
         endpoint = qs_data[1]
         context = {'info': endpoint, 'subscriber': subscriber}
-        return render(request, 'billercomplete.html', context)
 
     else:
         endpoint = qs_data # cast for future implementations
         context = {'call_details': endpoint, 'subscriber': subscriber}
-        return render(request, 'billercomplete.html', context)
+
+    return context
+    # return render(request, 'callslist.html', context)
 
 
-def find_subscriber_month_year(request, subscriber, month, year):
+# @login_required
+def find_subscriber_month_year(subscriber, month, year):
     """
     :param request: (auto)
     :param subscriber: provided eg. 11970663342
@@ -77,9 +94,11 @@ def find_subscriber_month_year(request, subscriber, month, year):
     qs_data = qs.get_interval_by_period(subscriber=subscriber, month=month, year=year)
 
     if qs_data[0] in range(1, 5):
-        print('ERROR DURING FILTERING')
+        endpoint = qs_data[1]
+        context = {'info': endpoint, 'subscriber': subscriber}
     else:
-        endpoint = qs_data # cast for future filtering implementations
-        context = {'call_details': qs_data}
+        endpoint = qs_data  # cast for future implementations
+        context = {'call_details': endpoint, 'subscriber': subscriber}
 
-    return render(request, 'billercomplete.html', context)
+    return context
+    ##return render(request, 'callslist.html', context)

@@ -2,22 +2,35 @@
 {% load bootstrap %}
 
 
-{% block title %} Pagina de login {% endblock %}
+{% block title %} OLIST BILLER {% endblock %}
 
 {% block main %}
 
-    <h2>Login</h2>
+
+
+    <div class="container" align="center">
+        <span class="fa fa-5x fa-eye"></span>
+        <h1>Olist Biller</h1>
+    <div class="row" align="left">
+        <div class="col-sm">
+
+
     <form method="post">
         {% csrf_token %}
         {{ form|bootstrap }}
+
+
         <button type="submit" class="btn btn-info">Login</button>
     </form>
+    </div>
+    </div>
 
+    </div>
 {% endblock %}
 
 {% block footer %}
     <footer class="footer">
-      <div class="container">
+      <div class="container" align="right">
         <span class="text-muted">Olist Biller - 1.0</span>
       </div>
     </footer>

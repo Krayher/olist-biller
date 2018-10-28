@@ -1,16 +1,43 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Olist Biller</title>
-</head>
-<body>
-    <h2>Login</h2>
-    <form method="post">
-        {% csrf_token %}
+{% extends 'base.html' %}
+{% load bootstrap %}
 
-        <button type="submit" class="btn btn-info">Login</button>
-</form>
+{% block main %}
 
-</body>
-</html>
+    <div class="container">
+    <div class="row" style="margin-top: 50px">
+    <div class="col" align="center" >
+            <span class="fa fa-5x fa-clipboard"></span>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+
+            <h1 align="center"> Phone Biller </h1>
+        </div>
+    </div>
+    <hr />
+
+    <div class="row">
+
+        <div class="col">
+        <p class="text-justify font-italic">
+            Please inform desired subscriber number, month and year. If you do not specify a period
+            the system will return the latest closed record. For REST API <a href="/rest">hit here</a>
+        </p>
+
+        </div>
+   </div>
+    <hr />
+    <div class="row">
+        <div class="col">
+         <form action="/biller/" method="POST">
+            {% csrf_token %}
+            {{ form | bootstrap }}
+
+             <input align="right" type="submit" value="Search" class="btn btn-outline-secondary"></input>
+        </form>
+        </div>
+    </div>
+    </div>
+
+{% endblock %}

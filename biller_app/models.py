@@ -1,9 +1,10 @@
-from django.db import models, IntegrityError
-from django.utils.datetime_safe import datetime
 from datetime import timedelta
+from decimal import *
+
 from dateutil import parser
 from django.core.exceptions import ObjectDoesNotExist
-from decimal import *
+from django.db import models, IntegrityError
+from django.utils.datetime_safe import datetime
 
 
 class CallPair(models.Model):
@@ -43,29 +44,6 @@ class CallStartRecord(models.Model):
     def __str__(self):
         return 'SUBSCRIBER: {0} - CALL ID: {1}'.format(self.source, self.call_id)
 
-    def closedperiod(self, subscriber, year, month):
-        """ Receives subscriber, year and month and return calculated calls for that period"""
-
-        call_list = []
-
-        try:
-            queryset = self.objects.filter(source=subscriber, timestamp__month=month, timestamp__year=year)
-        except ObjectDoesNotExist:
-            return [1, "There is no data for month {0} and year {1}.".format(month, year)]
-
-        for call_start in queryset:
-            call_end = CallEndRecord.objects.get(
-                call_id=call_start.call_id)
-
-            if call_end.timestamp.month == month:
-                call_details = self.call_calculator(call_start.timestamp, call_end.timestamp)
-
-                # creating the destination filed in the fresh returned dict
-                call_details['destination'] = call_start.destination
-                call_list.append(call_details)
-
-        return dict({'call_details': call_list})
-
 
 class CallEndRecord(models.Model):
     """Receiver most in CharField format to avoid data discrepancies
@@ -103,7 +81,7 @@ class QueryFilters:
         try:
             start = CallStartRecord.objects.filter(source=subscriber)
         except ObjectDoesNotExist:
-            return [1, "Internal Error - please contact staff support - subscriber lenght: {0} - type {1}".format(
+            return [1, "Internal Error - please contact support: subscriber lenght: {0} - type {1}".format(
                 len(subscriber), type(subscriber))]
 
         if start.count() == 0:
@@ -114,7 +92,7 @@ class QueryFilters:
             try:
                 pair = CallEndRecord.objects.get(call_id=call.call_id)
             except ObjectDoesNotExist:
-                return [3, "No valid call pair for this subscriber, check data consistency by REST API"]
+                break
 
             datetime_validation = self.is_valid_period(call.timestamp, pair.timestamp)
             if datetime_validation == 1:
@@ -135,7 +113,6 @@ class QueryFilters:
                 except IntegrityError:
                     return [1, "There was an Integrity Error during data saving. Please try again"]
         return [0, "Records were saved in the temp database"]
-
 
     def is_valid_period(self, start_timestamp, end_timestamp):
         try:
@@ -168,7 +145,7 @@ class QueryFilters:
         """
 
         call_pair_resume = self.get_call_pairs(subscriber=subscriber)
-        if call_pair_resume[0] > 1:
+        if call_pair_resume[0] >= 1:
             return call_pair_resume  # return the error and description to view and frontend
 
         current_month = datetime.now().month
@@ -180,11 +157,12 @@ class QueryFilters:
                                                 dt_end__month__lt=current_month,
                                                 dt_end__year__lte=current_year).latest('dt_end')
         except ObjectDoesNotExist:
-            return [1, "There is no valid call pair for this subscriber"]
+            return [1, "Internal database error, please contact administrator"]
 
-        interval = self.get_interval_by_period(subscriber,
-                                    call_pair.closed_period_year,
-                                    call_pair.closed_period_month)
+        if call_pair.DoesNotExist is True:
+            return [1, "There is no valid call pair for this subscriber and this period"]
+
+        interval = self.get_interval_by_period(subscriber, call_pair.closed_period_year, call_pair.closed_period_month)
 
         return interval
 
@@ -200,15 +178,18 @@ class QueryFilters:
         call_details = []
         call_matrix = dict()
 
-        # make sure that closed period informed is in the same month when calls has ended.
+        # make sure subscriber exists
+        call_pair_resume = self.get_call_pairs(subscriber=subscriber)
+        if call_pair_resume[0] >= 1:
+            return call_pair_resume  # return the error and description to view and frontend
 
         try:
-            call_period = CallPair.objects.filter(source=subscriber,
-                                                  closed_period_month=month,
-                                                  closed_period_year=year)
+            call_period = CallPair.objects.filter(source=subscriber, closed_period_month=month, closed_period_year=year)
         except ObjectDoesNotExist:
             return [3, "Internal server error, please contact administrator"]
 
+        # has no other method for counting. This can throw an error, if db is locked or with truncated data.
+        # django documentation has no solution, and there is a bug fix open waiting for solution
         if call_period.count() == 0:
             return [4, "No matching results were found for this subscriber"]
 
@@ -300,16 +281,12 @@ class QueryFilters:
         elif (call_start_datetime.hour not in normal_charge_period) & \
                 (call_end_datetime.hour in normal_charge_period):
 
-            start_charge_limit = call_start_datetime.replace(hour=6,
-                                                    minute=0)
-
-            period_in_minutes = self.tm_delta(start_charge_limit,
-                                              call_end_datetime)
+            # change the time where the charging starts
+            start_charge_limit = call_start_datetime.replace(hour=6, minute=0, second=0)
+            period_in_minutes = self.tm_delta(start_charge_limit, call_end_datetime)
 
             # return detailed price information plus call duration
-            return self.feeder(period_in_minutes,
-                               'partial',
-                               call_total_duration)
+            return self.feeder(period_in_minutes, 'partial', call_total_duration)
 
     def call_duration(self, start, end):
         """
