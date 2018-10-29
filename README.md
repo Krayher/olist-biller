@@ -13,6 +13,19 @@ The truncated data can be modified, and properly corrected by the REST API or us
 A lot of improvements can be done, the app was designed mainly supporting plug and play sensitive data information although a 
 very few information are being displayed as requested by the initial application contest. 
 
+
+# Installing and testing instructions;
+After clone or fork this repo, make sure to create a file named **.env** containing the following lines:
+
+SECRET_KEY=
+DEBUG=
+
+Create a blank database and past the secret_key value in the SECRET_KEY var. 
+(If you don't know how to use Django Admin for this task, check this out: https://docs.djangoproject.com/en/2.1/ref/django-admin/)
+For testing purposes place a DEBUG=True tag.
+
+Make sure to install all the project needs, you can use pip for this, the file requirements.txt contatins a list of all packages for the project.
+
 # REST API Interface
 The rest API was placed at https://olist-biller.herokuapp.com/rest/ separated by callstart and callend pages. The callstart is intended 
 to input initial call information using the following formats:
