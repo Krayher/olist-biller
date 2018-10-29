@@ -52,14 +52,19 @@ along with a Django-Form requesting data to fullfill the report. The system is v
 
 # Environment and Development Resources
 
-This application was done using Pycharm Professional 2018.2.4 under a Linux Mint distro, using a intel i686 64-bits processor and 16gb memory.
-Extensively tested on Wintel box, however with some weird Python Datetime behavior which had lead me to find out solutions for workaround
-the problems of UNIX POSIX data calculation vs Processor architecture. I ran some performance testes and code coverage using Pycharm 
-and VS Code with no clues.
+This application was designed using the following resources:
+* Pycharm Professional 2018.2.4 
+* Linux Mint 4.15.0-38-generic distro,
+* Hardware Intel i686 64-bits processor with 16 GB memory and 2tb SSD disk.
+* bpython / ptpython / ipython were used for debug purposes and calculate POSIX datetime objects
+
+Extensively tested on Wintel box with no major issues, however with some weird Python Datetime behavior. 
+It ran some performance testes and code coverage using Pycharm and VS Code with no clues.
+The testing was done by Internal Django tests collection of tools.
 
 # Enviroment needs
 
-Follows down a generated list by **pip freeze** containing project packages requirements, just removed some inheritance dependencies 
+Here a generated list by **pip freeze** containing project packages requirements, just removed some inheritance dependencies 
 which comes with these frameworks, eg. bpython.
 
 * bpython==0.17.1 
@@ -79,7 +84,7 @@ which comes with these frameworks, eg. bpython.
 
 # Project standards
 
-I've tried my best to follow up the project requirements as follows:
+I've been trying my best to follow up the project requirements as follows:
 
 * Practice the 12 Factor-App concepts;
 * Use SOLID design principles;
@@ -88,10 +93,18 @@ I've tried my best to follow up the project requirements as follows:
 * Flexible database fields with no locks by datatype
 * PEP8 code standard
 
-However, due my lack of time some pieces of code that could be rewritten in a more pythonic and clear way couldn't be done yet. 
-Certainly it they will be done in future releases. Pieces that require modification were #commented and #TODOed. 
-This app spent about 30 hours of my time working during night shift between my spare time. If you are a more experienced developer 
-using Python and Django under web singleton or any MVC, I would appreciate any corrections and comments.
+However, due my lack of time right now some vital pieces of code in which could be rewritten in a more pythonic and clear 
+way, couldn't be done yet. Certainly they will take in place on future releases. 
+
+**NOTE:**  
+
+Pieces that require modification were **#commented** and **#TODOed.**
+ 
+This app spent about 30 hours of development during night shift between my spare time. 
+
+If you are a more experienced developer 
+using Python and Django under web singleton or any MVC, 
+I would appreciate any corrections and comments.
 
 Hit me at: 
 aislandiego@gmail.com 
