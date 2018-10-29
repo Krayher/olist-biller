@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'biller_app.apps.BillerAppConfig',
     'rest_framework',
     'bootstrapform',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 MIDDLEWARE = [
@@ -137,3 +138,5 @@ STATIC_URL = '/static/'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'index'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
