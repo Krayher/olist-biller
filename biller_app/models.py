@@ -71,6 +71,7 @@ class QueryFilters:
         :param subscriber: The phone number eg. 99988526423
         :return: reunite each call detail in a table to make life easier
         """
+        purge_subscriber = ''  # PEP8 declaration before try
         try:
             purge_subscriber = CallPair.objects.filter(source=subscriber)
             purge_subscriber.delete()
@@ -92,11 +93,11 @@ class QueryFilters:
             try:
                 pair = CallEndRecord.objects.get(call_id=call.call_id)
             except ObjectDoesNotExist:
-                break
+                continue
 
             datetime_validation = self.is_valid_period(call.timestamp, pair.timestamp)
             if datetime_validation == 1:
-                break
+                continue
             else:
                 start_timestamp = datetime_validation[0]
                 end_timestamp = datetime_validation[1]
@@ -106,7 +107,7 @@ class QueryFilters:
                 cp.call_id = call.call_id
                 cp.dt_start = start_timestamp
                 cp.dt_end = end_timestamp
-                cp.closed_period_month =  end_timestamp.month
+                cp.closed_period_month = end_timestamp.month
                 cp.closed_period_year = end_timestamp.year
                 try:
                     cp.save()
@@ -114,24 +115,27 @@ class QueryFilters:
                     return [1, "There was an Integrity Error during data saving. Please try again"]
         return [0, "Records were saved in the temp database"]
 
+
     def is_valid_period(self, start_timestamp, end_timestamp):
         try:
             # looking for a safe alternative to convert ISO-8601 datetime
             # "%Y-%m-%dT%H:%M:%S%Z") unsupported into python batteries prior py3.7
             # date string template from olist: 2016-02-29T14:00:00Z
             # converting both dates to naiwe datetime objects since format has no %Z just Z (zulu time)
-            start_timestamp = parser.parse(start_timestamp) # datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            datetime.strptime(start_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            start_timestamp = parser.parse(start_timestamp)  #
             is_valid_start_ts = True
         except ValueError:
             is_valid_start_ts = False
-            pass
+            return 1
 
         try:
-            end_timestamp = parser.parse(end_timestamp)  # datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            datetime.strptime(end_timestamp, "%Y-%m-%dT%H:%M:%SZ")
+            end_timestamp = parser.parse(end_timestamp)
             is_valid_end_ts = True
         except ValueError:
             is_valid_end_ts = False
-            pass
+            return 1
 
         if is_valid_start_ts and is_valid_end_ts:
             if start_timestamp.replace(tzinfo=None) < end_timestamp.replace(tzinfo=None):
@@ -145,7 +149,10 @@ class QueryFilters:
         """
 
         call_pair_resume = self.get_call_pairs(subscriber=subscriber)
-        if call_pair_resume[0] >= 1:
+
+        if call_pair_resume is None:
+            return [1, "No valid timestamp were found for this subscriber"]
+        elif call_pair_resume[0] >= 1:
             return call_pair_resume  # return the error and description to view and frontend
 
         current_month = datetime.now().month
@@ -157,7 +164,7 @@ class QueryFilters:
                                                 dt_end__month__lt=current_month,
                                                 dt_end__year__lte=current_year).latest('dt_end')
         except ObjectDoesNotExist:
-            return [1, "Internal database error, please contact administrator"]
+            return [1, "No valid call records were found for this subscriber"]
 
         if call_pair.DoesNotExist is True:
             return [1, "There is no valid call pair for this subscriber and this period"]
@@ -175,8 +182,8 @@ class QueryFilters:
         :return: dictionary with call details
         """
 
-        call_details = []
-        call_matrix = dict()
+        call_details = []  # PEP8 specification
+        call_matrix = dict()  # PEP8 specification
 
         # make sure subscriber exists
         call_pair_resume = self.get_call_pairs(subscriber=subscriber)
@@ -186,12 +193,12 @@ class QueryFilters:
         try:
             call_period = CallPair.objects.filter(source=subscriber, closed_period_month=month, closed_period_year=year)
         except ObjectDoesNotExist:
-            return [3, "Internal server error, please contact administrator"]
+            return [3, "No matching results were found for this subscriber. Check data consistency"]
 
         # has no other method for counting. This can throw an error, if db is locked or with truncated data.
         # django documentation has no solution, and there is a bug fix open waiting for solution
         if call_period.count() == 0:
-            return [4, "No matching results were found for this subscriber"]
+            return [4, "No matching results were found for this subscriber. Check data Consistency"]
 
         for call in call_period:
             call_matrix = self.call_calculator(call.dt_start, call.dt_end)
@@ -290,16 +297,21 @@ class QueryFilters:
 
     def call_duration(self, start, end):
         """
-
         :param start: datetime format
         :param end: datetime format
         :return: hh:mm:ss without microseconds when applicable
                  TODO: Further investigate DELTA weird behavior in POSIX systems
         """
         delta_diff = end - start
-        duration = str(delta_diff).split('.')[0]
 
-        """ For future implementations it's done, just plug and play.
+        _hours, rem = divmod(delta_diff.total_seconds(), 3600)
+        _minutes, _seconds = divmod(rem, 60)
+
+        # duplicated strips due bug prevention in POSIX
+        duration = str(delta_diff).split('.')[0]
+        duration_simplified = '{:02}h{:02}m{:02}s'.format(int(_hours), int(_minutes), int(_seconds))
+
+        """ For future implementations a detailed dict, for plug and play.
         """
         return {
             'start_date': datetime.strftime(start, '%Y/%m/%d'),
@@ -318,8 +330,8 @@ class QueryFilters:
             'end_hour': end.hour,
             'end_min': end.minute,
             'end_sec': end.second,
-            'call_duration': duration,  # %H;%M:%S
-            'call_duration_deltafmt': str(delta_diff),  # %D days %H:%M:%S
+            'call_duration': duration,  # %d days, %H:%M:%S
+            'call_d_fmt': duration_simplified,
         }
 
     def tm_delta(self, start, end):
@@ -348,4 +360,3 @@ class QueryFilters:
         duration['call_price'] = float("{0:.2f}".format(value + fixed_charge))
 
         return duration
-

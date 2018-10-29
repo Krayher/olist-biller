@@ -11,7 +11,7 @@
             <p><h5><i class="fa fa-volume-control-phone" style="font-size:36px"> {{  subscriber }} </i></h5></p>
         </div>
         <div class="col" align="right">
-            <p><h1><i class="fa fa-eye" style="font-size:36px"> OLIST BILLER</h1></i></p>
+            <p><h1><i class="fa fa-eye" style="font-size:36px"> OLIST BILLER</i></h1></p>
         </div>
   </div>
   <hr />
@@ -55,7 +55,7 @@
             </div>
 
             <div class="col-sm">
-                <p style="font-size: 18px;" align="center">{{ call.call_duration }}</p>
+                <p style="font-size: 18px;" align="center">{{ call.call_d_fmt }}</p>
             </div>
 
             <div class="col-sm">
@@ -70,7 +70,7 @@
         <div class="col-sm">
             <span class="fa fa-5x fa-user-times"></span>
             <div class="col-sm">
-            <h5 align="center">{{ info }} Min is 10 and Max is 11 digits eg. 11987654321</h5>
+            <h5 align="center">{{ info }}</h5>
             </div>
         </div>
 
@@ -85,6 +85,7 @@
 {% endblock %}
 
     {% block footer %}
+            <hr />
 
         <div class="container">
             <div class="row" align="right">
