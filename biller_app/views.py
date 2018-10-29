@@ -22,9 +22,9 @@ class CallEndRecordView(viewsets.ModelViewSet):
 
 @login_required
 def index(request):
-    """ dummie test"""
+    """Index callback: Define a form and return to frontend"""
     form = BillerForm(request.POST)
-    return render(request, 'index.html', {'form': form })
+    return render(request, 'index.html', {'form': form})
 
 
 def biller(request):
@@ -76,7 +76,6 @@ def find_subscriber(subscriber):
         context = {'call_details': endpoint, 'subscriber': subscriber}
 
     return context
-    # return render(request, 'callslist.html', context)
 
 
 # @login_required
@@ -100,4 +99,3 @@ def find_subscriber_month_year(subscriber, month, year):
         context = {'call_details': endpoint, 'subscriber': subscriber}
 
     return context
-    ##return render(request, 'callslist.html', context)
