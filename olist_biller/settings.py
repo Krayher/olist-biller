@@ -52,7 +52,7 @@ INSTALLED_APPS = [
     'biller_app.apps.BillerAppConfig',
     'rest_framework',
     'bootstrapform',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+
 ]
 
 MIDDLEWARE = [
@@ -63,6 +63,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'olist_biller.urls'
