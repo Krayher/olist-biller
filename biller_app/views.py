@@ -4,6 +4,7 @@ from .models import CallStartRecord, CallEndRecord, QueryFilters
 from .serializers import CallStartRecordSerializer, CallEndRecordSerializer
 from django.contrib.auth.decorators import login_required
 from .forms import BillerForm
+from django.views.decorators.csrf import csrf_protect
 
 
 class CallStartRecordView(viewsets.ModelViewSet):
@@ -19,7 +20,7 @@ class CallEndRecordView(viewsets.ModelViewSet):
 
 # Serialization done
 
-
+@csrf_protect
 @login_required
 def index(request):
     """ dummie test"""
