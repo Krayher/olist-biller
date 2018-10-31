@@ -17,8 +17,9 @@
 
     <form method="post">
         {% csrf_token %}
-        {{ form|bootstrap }}
-        {% csrf_token %}
+        {{ bootstrap }}
+        {{ form}}
+
 
 
         <button type="submit" class="btn btn-info">Login</button>
