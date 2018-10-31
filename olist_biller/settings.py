@@ -143,10 +143,14 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'index'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
 SECURE_SSL_REDIRECT = True
-SESSION_COOKIE_SECURE = True
+
+SESSION_COOKIE_SECURE = False
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_DOMAIN = 'olist-biller.herokuapp.com'
 
 
 # Logging
