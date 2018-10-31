@@ -20,14 +20,13 @@ class CallEndRecordView(viewsets.ModelViewSet):
 
 # Serialization done
 
-@csrf_protect
 @login_required
 def index(request):
     """ dummie test"""
     form = BillerForm(request.POST)
     return render(request, 'index.html', {'form': form })
 
-
+@csrf_protect
 def biller(request):
     """
     :param request: receives the form in POST method
