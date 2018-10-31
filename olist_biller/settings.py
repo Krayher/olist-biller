@@ -143,7 +143,7 @@ LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = 'index'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = False
 
 
 # Logging
