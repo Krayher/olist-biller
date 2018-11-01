@@ -17,8 +17,11 @@
 
     <form method="post">
         {% csrf_token %}
-        {{ form | bootstrap }}
-        <button type="submit" class="btn btn-info">Login</button>
+        <p>Subscriber: {{ form.subscriber }}</p>
+        <p>month: {{ form.month}}</p>
+        <p>year: {{ form.year }}</p>
+        <p align="right"><button type="submit" class="btn btn-info">Login</button></p>
+
     </form>
     </div>
     </div>
