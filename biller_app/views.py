@@ -4,6 +4,7 @@ from .models import CallStartRecord, CallEndRecord, QueryFilters
 from .serializers import CallStartRecordSerializer, CallEndRecordSerializer
 from django.contrib.auth.decorators import login_required
 from .forms import BillerForm
+from django.views.decorators.csrf import csrf_exempt
 
 
 class CallStartRecordView(viewsets.ModelViewSet):
@@ -19,12 +20,15 @@ class CallEndRecordView(viewsets.ModelViewSet):
 
 # Serialization done
 
+@csrf_exempt
 @login_required
 def index(request):
     """Index callback: Define a form and return to frontend"""
     form = BillerForm(request.POST)
     return render(request, 'index.html', {'form': form})
 
+
+@csrf_exempt
 def biller(request):
     """
     :param request: receives the form in POST method
@@ -49,7 +53,7 @@ def biller(request):
     return render(request, 'callslist.html', _result)
 
 
-# @login_required
+@csrf_exempt
 def find_subscriber(subscriber):
     """ receives the subscriber number and find the last
         period of month and year, and perform the search
@@ -73,7 +77,7 @@ def find_subscriber(subscriber):
     return context
 
 
-# @login_required
+@csrf_exempt
 def find_subscriber_month_year(subscriber, month, year):
     """
     :param request: (auto)
