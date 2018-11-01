@@ -19,7 +19,7 @@ class CallEndRecordView(viewsets.ModelViewSet):
     serializer_class = CallEndRecordSerializer
 
 # Serialization done
-@csrf_protect
+
 @login_required
 def index(request):
     """ dummie test"""
@@ -53,7 +53,7 @@ def biller(request):
 
     return render(request, 'callslist.html', _result)
 
-@csrf_protect
+
 # @login_required
 def find_subscriber(subscriber):
     """ receives the subscriber number and find the last
@@ -76,9 +76,9 @@ def find_subscriber(subscriber):
         context = {'call_details': endpoint, 'subscriber': subscriber}
 
     return context
+    # return render(request, 'callslist.html', context)
 
 
-@csrf_protect
 # @login_required
 def find_subscriber_month_year(subscriber, month, year):
     """
@@ -100,3 +100,4 @@ def find_subscriber_month_year(subscriber, month, year):
         context = {'call_details': endpoint, 'subscriber': subscriber}
 
     return context
+    ##return render(request, 'callslist.html', context)
