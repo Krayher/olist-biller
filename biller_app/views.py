@@ -19,7 +19,7 @@ class CallEndRecordView(viewsets.ModelViewSet):
 
 # Serialization done
 
-
+@login_required
 def index(request):
     """Index callback: Define a form and return to frontend"""
     form = BillerForm(request.POST)
