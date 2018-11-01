@@ -32,24 +32,21 @@ def biller(request):
     :param request: receives the form in POST method
     :return: split data and start database search and call calculation
     """
+    data = ""  # avoid python debug boring messages
     if request.method == "POST":
         form = BillerForm(request.POST)
 
-    if form.is_valid():
-        data = form.cleaned_data
+        if form.is_valid():
+            data = form.cleaned_data
 
-    else:
-        form = BillerForm()
-        render(request, 'index.html', {'form': form})
-
-    _subscriber = data['subscriber']
-    _month = data['month']
-    _year = data['year']
+    subscriber = data['subscriber']
+    month = data['month']
+    year = data['year']
 
     if data['month'] in range(0, 13) and data['year'] in range(1900, 2099):
-        _result = find_subscriber_month_year(subscriber=_subscriber, month=_month, year=_year)
+        _result = find_subscriber_month_year(subscriber=subscriber, month=month, year=year)
     else:
-        _result = find_subscriber(subscriber=_subscriber)
+        _result = find_subscriber(subscriber=subscriber)
 
     return render(request, 'callslist.html', _result)
 

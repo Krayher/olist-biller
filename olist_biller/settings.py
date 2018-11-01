@@ -141,6 +141,7 @@ STATIC_URL = '/static/'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
+LOGOUT_REDIRECT_URL = '/'
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
@@ -163,5 +164,10 @@ LOGGING = {
             'handlers': ['console'],
              'level': os.getenv('DJANGO_LOG_LEVEL', 'DEBUG'),
         },
+        'django.template': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+    },
     },
 }

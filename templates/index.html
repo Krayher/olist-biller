@@ -11,8 +11,7 @@
     </div>
     <div class="row">
         <div class="col">
-
-            <h1 align="center"> Phone Biller </h1>
+            <h1 align="center"> Phone Biller</h1>
         </div>
     </div>
     <hr />
@@ -28,16 +27,31 @@
         </div>
    </div>
     <hr />
-    <div class="row">
-        <div class="col">
-         <form action="/biller/" method="POST">
-            {% csrf_token %}
-            {{ form | bootstrap }}
 
-             <input align="right" type="submit" value="Search" class="btn btn-outline-secondary"></input>
-        </form>
+
+        <div class="row" align="left">
+
+            <form action="/biller/" method="POST">
+            {% csrf_token %}
+
+            <div class="col">
+                 <p align="left">{{ form.subscriber | bootstrap }}</p>
+                 <p align="left">{{ form.month | bootstrap }}</p>
+                 <p align="left">{{ form.year | bootstrap }}</p>
+
+
+
+                 <input align="right" type="submit" value="Search" class="btn btn-outline-secondary"></input>
+                </form>
         </div>
-    </div>
-    </div>
+            </div>
+
+        </div>
+
+</div>
+
+
+
+
 
 {% endblock %}
