@@ -2,29 +2,31 @@
 
 **DESCRIPTION:** 
 
-This application was designed to provide a REST API and a Frontend report page to render phone bills by specific periods. 
-It takes call details through REST API and stores on database to further calculate the value from that period, with partial time charge.
-Having in mind the simplicity and very short time, I've wrote a small core calculator intended to split out the periods and charge 
-'em by minutes.
+This application was designed to provide a REST API and a Frontend report page to render phone bills. 
+It process call details through a REST API interface storing in DB for further calculations, within or without partial 
+time charge. 
 
-A simple frontend was designed to provide the billing report by subscriber number and the desired period by month and year.
-Data validation is done while retrieving data information, and calls with inconsistency are being ignored rendered in the report. 
-The truncated data can be modified, and properly corrected by the REST API or using third app like POSTMAN.
-A lot of improvements can be done, the app was designed mainly supporting plug and play sensitive data information although a 
-very few information are being displayed as requested by the initial application contest. 
+A simple frontend was designed to provide the billing report by subscriber number and the desired period by month and 
+year. Data validation is done while retrieving data information excluding calls with inconsistency which are ignored. 
+The truncated data can be modified lately and properly corrected thought REST API or using third app like POSTMAN.
+Improvements need to be done the app was designed mainly supporting plug and play sensitive data information although a 
+very few are being displayed as requested by the initial application contest. 
 
 
-# Installing and testing instructions;
-After clone or fork this repo, make sure to create a file named **.env** containing the following lines:
+# Installing and testing instructions
+a) Make sure to create a file named **.env** containing the following lines:
 
-SECRET_KEY=
-DEBUG=
+* SECRET_KEY=
+* DEBUG=
 
-Create a blank database and past the secret_key value in the SECRET_KEY var. 
-(If you don't know how to use Django Admin for this task, check this out: https://docs.djangoproject.com/en/2.1/ref/django-admin/)
-For testing purposes place a DEBUG=True tag.
+b) run python manage.py migrate 
+this command will create a new sqlite3 db locally for you.
 
-Make sure to install all the project needs, you can use pip for this, the file requirements.txt contatins a list of all packages for the project.
+c) run python manage.py createsuperuser
+to create a superuser so you can login the system
+
+d) pip install -r requirements.txt
+This will make sure to install all the project requirements 
 
 # REST API Interface
 The rest API was placed at https://olist-biller.herokuapp.com/rest/ separated by callstart and callend pages. The callstart is intended 
@@ -56,11 +58,27 @@ B. callend way
 }
 ```
 
-The REST API used is default django rest framework that can be found at https://www.django-rest-framework.org/ and therefore
-most of the task was fulfilled by its framework. In a future release I'll provide a report callback by REST API.
+The REST API used is default django rest framework that can be found at https://www.django-rest-framework.org/ 
+and therefore most of the task was fulfilled by its framework. In a future release I'll provide a report callback 
+by REST API.
 
-When application is opened a login is required. All interfaces requires user be to logged in. There is a link for the REST API on the index,
-along with a Django-Form requesting data to fullfill the report. The system is very intuitive
+The Django REST API provides many methods for manipulating the data, lets suppose you have inserted an invalid value
+for a specific register with number 10 on callstart. You can navigate to update this item manually or you can replace
+all fields by the REST JSON format, with the following arguments available: 
+
+Allow: 
+    * GET, 
+    * PUT,
+    * PATCH, 
+    * DELETE, 
+    * HEAD, 
+    * OPTIONS
+
+For full REST documentation please visit this link: https://www.django-rest-framework.org/#quickstart
+
+
+Once application is opened a login is required. All interfaces requires user be to logged in. There is a link for the REST API on the index,
+along with a Django-Form requesting data to fulfill the report. The system is very intuitive
 
 
 # Environment and Development Resources
@@ -82,7 +100,7 @@ which comes with these frameworks, eg. bpython.
 
 * bpython==0.17.1 
 * dj-database-url==0.5.0
-* Django==2.1.2
+* Django==2.0.1 
 * django-bootstrap-form==3.4
 * djangorestframework==3.8.2
 * gunicorn==19.9.0
@@ -95,19 +113,17 @@ which comes with these frameworks, eg. bpython.
 
 **For full list of project needs check requirements.txt** 
 
+**WARNING:**  
+(Make sure to avoid DJANGO v2.1.3 in this specific app. It doesn't work with Heroku and Google Chrome)
+
 # Project standards
 
-I've been trying my best to follow up the project requirements as follows:
-
-* Practice the 12 Factor-App concepts;
+* Practice the 12 Factor-App concepts; 
 * Use SOLID design principles;
 * Use programming good practices;
 * Use git best practices (With clear and straightforward messages)
 * Flexible database fields with no locks by datatype
 * PEP8 code standard
-
-However, due my lack of time right now some vital pieces of code in which could be rewritten in a more pythonic and clear 
-way, couldn't be done yet. Certainly they will take in place on future releases. 
 
 **NOTE:**  
 
@@ -115,9 +131,5 @@ Pieces that require modification were **#commented** and **#TODOed.**
  
 This app spent about 30 hours of development during night shift between my spare time. 
 
-If you are a more experienced developer 
-using Python and Django under web singleton or any MVC, 
-I would appreciate any corrections and comments.
-
-Hit me at: 
+Any comments, let me know
 aislandiego@gmail.com 

@@ -8,17 +8,16 @@
 
 
 
-    <div class="container" align="center">
+    <div class="container" align="left">
         <span class="fa fa-5x fa-eye"></span>
         <h1>Olist Biller</h1>
-    <div class="row" align="center">
-        <div class="col-md">
+    <div class="row" align="left">
+        <div class="col-lg-4">
 
             <form method="post">
             {% csrf_token %}
-            <p>Username: {{ form.username }} </p>
-            <p>Password: {{ form.password }} </p>
-            <p align="center"><button type="submit" class="btn btn-info">Login</button></p>
+            {{ form | bootstrap }}
+            <p align="right"><button type="submit" class="btn btn-info">Login</button></p>
             </form>
 
         </div>
@@ -28,7 +27,7 @@
 
 {% block footer %}
     <footer class="footer">
-      <div class="container" align="right">
+      <div class="container" align="left">
         <span class="text-muted">Olist Biller - 1.0 </span>
         <a href="/logout">- logout</a>
 
